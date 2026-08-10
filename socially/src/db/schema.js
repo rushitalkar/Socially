@@ -14,3 +14,13 @@ export const users = pgTable("users", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
+
+export const post = pgTable("post",{
+   id : uuid("id").defaultRandom(),
+   authorId : text("authorId").notNull().references(()=> users.id , {onDelete : "cascade"}),
+   content : text("content").notNull(),
+   image : text("image"),
+   createdAt: timestamp("created_at").defaultNow().notNull(),
+   updatedAt: timestamp("updated_at").defaultNow().notNull(),
+
+})
