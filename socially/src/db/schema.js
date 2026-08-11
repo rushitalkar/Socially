@@ -2,8 +2,16 @@
 import { pgTable, serial, text, timestamp ,defaultRandom , uuid  } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 import { createId } from "@paralleldrive/cuid2";
-import { index, primaryKey } from "drizzle-orm/gel-core";
+import { boolean, index, primaryKey } from "drizzle-orm/gel-core";
 import { Table } from "lucide-react";
+
+
+export const notificationTypeEnum = pgEnum("notification_type", [
+  "LIKE",
+  "COMMENT",
+  "FOLLOW",
+]);
+
 export const users = pgTable("users", {
   id: text("id").primaryKey().$defaultFn(()=>createId()),
   email: text("email").notNull().unique(),
@@ -17,6 +25,19 @@ export const users = pgTable("users", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
+
+export const usersRelations = relations(users, ({ many }) => ({
+  posts: many(posts),
+  comments: many(comments),
+  likes: many(likes),
+  followers: many(follows, { relationName: "following" }),
+  following: many(follows, { relationName: "follower" }),
+  notifications: many(notifications, { relationName: "userNotifications" }),
+  notificationsCreated: many(notifications, {
+    relationName: "notificationCreator",
+  }),
+}));
+
 
 export const posts = pgTable("post",{
    id: text("id").primaryKey().$defaultFn(()=>createId()),
@@ -97,4 +118,52 @@ export const follows = pgTable("follows" , {
     //  primaryKey({ columns: [table.followerId, table.followingId] }),
   ]
 )
+
+export const followsRelations = relations(follows, ({ one }) => ({
+  follower: one(users, {
+    fields: [follows.followerId],
+    references: [users.id],
+    relationName: "follower",
+  }),
+  following: one(users, {
+    fields: [follows.followingId],
+    references: [users.id],
+    relationName: "following",
+  }),
+}));
+
+export const notifications = pgTable("notifications",{
+    id : text("id").primaryKey().notNull().$defaultFn(()=> createId()),
+    userId : text("userId").notNull().references(()=> users.id , {onDelete : "cascade"}),
+    creatorId : text("creatorId").notNull().references(()=> users.id , {onDelete : "cascade"}),
+    type : notificationTypeEnum("type").notNull(),
+    read : boolean("read").$default(false).notNull(),
+    commentId : text("commentsId").notNull().references(()=> comments.id),
+    postId : text("postId").notNull().references(()=>posts.id),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+},
+  (table) => [
+    index("notification_user_created_idx").on(table.userId, table.createdAt),
+  ]) 
+
+export const notificationRelation = relations(notifications, ({one , many})=>({
+    user : one(users , {
+      fields : [notifications.userId],
+      references : [users.id]
+    }),
+    comment : one(comments , {
+       fields : [notifications.commentId],
+       references : [comments.id]
+    }),
+    creator : one(users , {
+      fields : [notifications.createId],
+      references : [users.id]
+    }),
+    post : one(posts , {
+      fields : [notifications.postId],
+      references : [posts.id]
+    })
+}))
+
+
 
