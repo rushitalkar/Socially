@@ -26,8 +26,6 @@ export const users = pgTable("users", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
-
-
 export const posts = pgTable("post",{
    id: text("id").primaryKey().$defaultFn(()=>createId()),
    authorId : text("authorId").notNull().references(()=> users.id , {onDelete : "cascade"}),
@@ -164,7 +162,7 @@ export const notificationRelation = relations(notifications, ({one , many})=>({
        references : [comments.id]
     }),
     creator : one(users , {
-      fields : [notifications.createId],
+      fields : [notifications.creatorId],
       references : [users.id]
     }),
     post : one(posts , {
