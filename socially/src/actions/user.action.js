@@ -32,3 +32,27 @@ export const syncUser = async ()=>{
         
     }
 }
+
+export async function getUserByClerkId (clerkId){
+    const user = await db.query.users.findFirst({
+        where : eq(users.clerkId , clerkId),
+        with : {
+                posts : {columns : {id : true}},
+                followers : {columns : {followerId : true}},
+                following : {columns : {followingId : true}}
+            }
+    })
+
+    if (!user) return null
+
+     const { posts, followers, following, ...userData } = user;
+
+  return {
+    ...userData,
+    _count: {
+      posts: posts.length,
+      followers: followers.length,
+      following: following.length,
+    },
+  };
+}
