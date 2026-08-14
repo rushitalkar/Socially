@@ -45,7 +45,7 @@ export async function getUserByClerkId (clerkId){
 
     if (!user) return null
 
-     const { posts, followers, following, ...userData } = user;
+    const { posts, followers, following, ...userData } = user;
 
   return {
     ...userData,
