@@ -1,7 +1,7 @@
 "use server"
-
-import { db } from "@/db"
-import { eq, notInArray } from "drizzle-orm";
+import { revalidatePath } from "next/cache";
+import { db } from "@/db";
+import { and, eq, notInArray } from "drizzle-orm";
 import { auth, currentUser } from "@clerk/nextjs/server";
 import { users, notifications, likes, posts, comments, follows } from "@/db/schema";
 
@@ -131,3 +131,54 @@ export async function getRandomUsers() {
     }
 }
 
+export async function toggleFollow(targetUserId) {
+  try {
+    const userId = await getDbUserId();
+
+    if (!userId) return { success: false, error: "Unauthorized" };
+
+    if (userId === targetUserId) {
+      return { success: false, error: "You cannot follow yourself" };
+    }
+
+    // 1. Check if follow relation exists
+    const existingFollow = await db.query.follows.findFirst({
+      where: and(
+        eq(follows.followerId, userId),
+        eq(follows.followingId, targetUserId)
+      ),
+    });
+
+    if (existingFollow) {
+      // 2. Unfollow
+      await db
+        .delete(follows)
+        .where(
+          and(
+            eq(follows.followerId, userId),
+            eq(follows.followingId, targetUserId)
+          )
+        );
+    } else {
+      // 3. Follow + Notify in a single atomic transaction
+      await db.transaction(async (tx) => {
+        await tx.insert(follows).values({
+          followerId: userId,
+          followingId: targetUserId,
+        });
+
+        await tx.insert(notifications).values({
+          type: "FOLLOW",
+          userId: targetUserId,
+          creatorId: userId,
+        });
+      });
+    }
+
+    revalidatePath("/");
+    return { success: true };
+  } catch (error) {
+    console.error("Error in toggleFollow:", error);
+    return { success: false, error: "Error toggling follow" };
+  }
+}

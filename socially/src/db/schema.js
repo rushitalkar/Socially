@@ -25,6 +25,25 @@ export const users = pgTable("users", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
+
+
+export const follows = pgTable("follows" , {
+  followerId : text("followerId").notNull().references(()=>users.id , {onDelete : "cascade"}),
+  followingId : text("followingId").notNull().references(()=> users.id , {onDelete : "cascade"}),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, 
+  (table)=>[
+     primaryKey({columns : [table.followerId , table.followingId]}),
+     index("follows_follower_following_idx").on(
+      table.followerId,
+      table.followingId
+     ),
+    //  we write this way also
+    //  primaryKey({ columns: [table.followerId, table.followingId] }),
+  ],
+)
+
+
 export const posts = pgTable("post",{
    id: text("id").primaryKey().$defaultFn(()=>createId()),
    authorId : text("authorId").notNull().references(()=> users.id , {onDelete : "cascade"}),
@@ -58,21 +77,6 @@ export const likes = pgTable("likes" , {
 
 
 
-export const follows = pgTable("follows" , {
-  followerId : text("followerId").notNull().references(()=>users.id , {onDelete : "cascade"}),
-  followingId : text("followingId").notNull().references(()=> users.id , {onDelete : "cascade"}),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-}, 
-  (table)=>[
-     primaryKey({columns : [table.followerId , table.followingId]}),
-     index("follows_follower_following_idx").on(
-      table.followerId,
-      table.followingId
-     ),
-    //  we write this way also
-    //  primaryKey({ columns: [table.followerId, table.followingId] }),
-  ]
-)
 
 
 export const notifications = pgTable("notifications",{
@@ -80,9 +84,9 @@ export const notifications = pgTable("notifications",{
     userId : text("userId").notNull().references(()=> users.id , {onDelete : "cascade"}),
     creatorId : text("creatorId").notNull().references(()=> users.id , {onDelete : "cascade"}),
     type : notificationTypeEnum("type").notNull(),
-    read : boolean("read").$default(false).notNull(),
-    commentId : text("commentsId").notNull().references(()=> comments.id),
-    postId : text("postId").notNull().references(()=>posts.id),
+    read : boolean("read").default(false).notNull(),
+    commentId : text("commentsId").references(()=> comments.id),
+    postId : text("postId").references(()=>posts.id),
     createdAt: timestamp("created_at").defaultNow().notNull(),
 },
   (table) => [
