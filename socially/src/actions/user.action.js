@@ -74,6 +74,8 @@ export async function getDbUserId() {
 export async function getRandomUsers() {
     try {
         const userId = await getDbUserId()
+
+        if (!userId) return [];
         // 1. Get IDs of users you already follow
 
         const userFollows = await db.query.follows.findMany({
@@ -81,7 +83,7 @@ export async function getRandomUsers() {
             columns: { followingId: true }
         })
 
-        const excludeIds = [userId, ...userFollows.map((f) => f.followingId)]
+        const excludeIds = [userId , ...userFollows.map((f) => f.followingId)]
 
         const getRandomUsers = await db.query.users.findMany({
             where: notInArray(users.id, excludeIds),
@@ -109,6 +111,7 @@ export async function getRandomUsers() {
     } catch (error) {
         console.log(error)
         return {status : 500 , error : error.message}
+        return [];
     }
 }
 

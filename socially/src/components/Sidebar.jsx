@@ -1,5 +1,6 @@
+import { useUser } from '@clerk/nextjs'
 import { currentUser } from '@clerk/nextjs/server'
-import React, { use } from 'react'
+import React from 'react'
 import { Button } from './ui/button'
 import { Card, CardContent } from './ui/card'
 import { CardHeader, CardTitle } from './ui/card'
@@ -12,12 +13,9 @@ import { LinkIcon, MapPinIcon } from "lucide-react";
 
 const Sidebar = async () => {
     const authUser = await currentUser()
-
     if (!authUser) return <UnAuthenticatedSidebar />
 
     const user = await getUserByClerkId(authUser.id)
-
-    console.log(user)
 
     return (
         <div>
@@ -96,7 +94,7 @@ const UnAuthenticatedSidebar = () => {
                             Login
                         </Button>
                     </SignInButton>
-                    <SignUpButton>
+                    <SignUpButton mode='modal'>
                         <Button className="w-full mt-3" variant="default">
                             Sign Up
                         </Button>

@@ -1,4 +1,5 @@
 import { BellIcon, HomeIcon, UserIcon } from "lucide-react";
+import { useUser } from "@clerk/nextjs";
 import { Button } from "@/components/ui/button";
 import { currentUser } from "@clerk/nextjs/server";
 import Link from "next/link";
