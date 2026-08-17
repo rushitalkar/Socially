@@ -3,7 +3,6 @@ import { pgTable, serial, text, timestamp ,defaultRandom , uuid , pgEnum } from 
 import { relations } from "drizzle-orm";
 import { createId } from "@paralleldrive/cuid2";
 import { boolean, index, primaryKey } from "drizzle-orm/gel-core";
-import { Table } from "lucide-react";
 
 
 export const notificationTypeEnum = pgEnum("notification_type", [

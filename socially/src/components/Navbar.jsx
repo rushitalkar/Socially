@@ -1,12 +1,11 @@
 import React from 'react'
-import { useUser } from '@clerk/nextjs'
 import { currentUser } from '@clerk/nextjs/server'
 import Link from 'next/link'
 import DesktopNavbar from './DesktopNavbar'
 import MobileNavbar from './MobileNavbar'
 import { syncUser } from '@/actions/user.action'
 const Navbar =async () => {
-const {user} = useUser
+   const user = await currentUser()
 
   if (user) {
     await syncUser()

@@ -18,14 +18,15 @@ export const syncUser = async () => {
         if (existingUser) {
             return { error: "user already exist", status: 500 }
         }
-        const dbUser = await db.insert(users).values({
+        const [dbUser] = await db.insert(users).values({
             clerkId: userId,
             name: `${user.firstName || ""} ${user.lastName || ""}`,
             username: user.username ?? user.emailAddresses[0].emailAddress.split("@")[0],
             email: user.emailAddresses[0].emailAddress,
             image: user.imageUrl,
-        })
+        }).returning()
 
+        
         return { success: true, status: 200, data: dbUser }
     } catch (error) {
         console.log(error);
@@ -34,7 +35,8 @@ export const syncUser = async () => {
 }
 
 export async function getUserByClerkId(clerkId) {
-    const user = await db.query.users.findFirst({
+
+    let user = await db.query.users.findFirst({
         where: eq(users.clerkId, clerkId),
         with: {
             posts: { columns: { id: true } },
@@ -42,6 +44,20 @@ export async function getUserByClerkId(clerkId) {
             following: { columns: { followingId: true } }
         }
     })
+     
+    if (!user) {
+    await syncUser();
+
+    // Re-query database after sync
+    user = await db.query.users.findFirst({
+      where: eq(users.clerkId, clerkId),
+      with: {
+        posts: { columns: { id: true } },
+        followers: { columns: { followerId: true } },
+        following: { columns: { followingId: true } },
+      },
+    });
+  }
 
     if (!user) return null
 
