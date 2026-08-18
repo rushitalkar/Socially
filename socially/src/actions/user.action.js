@@ -131,69 +131,81 @@ export async function getRandomUsers() {
     }
 }
 
-export async function toggleFollow(targetUserId) {
+export async function toggleLike(postId) {
   try {
-    // Step 1: Find the currently logged-in user from Clerk and convert it to the DB user ID.
-    // Example: auth() gives Clerk userId, then getDbUserId() fetches the matching row in the users table.
     const userId = await getDbUserId();
-
-    // Step 2: If there is no logged-in user, reject the action.
-    if (!userId) return { success: false, error: "Unauthorized" };
-
-    // Step 3: Prevent a user from following themselves.
-    if (userId === targetUserId) {
-      return { success: false, error: "You cannot follow yourself" };
+    if (!userId) {
+      return { success: false, error: "Unauthorized" };
     }
 
-    // Step 4: Check whether a follow row already exists.
-    // It looks for a row where:
-    // - followerId = current logged-in user
-    // - followingId = target user
-    const existingFollow = await db.query.follows.findFirst({
+    // 1. Fetch post author to verify existence and notification target
+    const post = await db.query.posts.findFirst({
+      where: eq(posts.id, postId),
+      columns: { authorId: true },
+    });
+
+    if (!post) {
+      return { success: false, error: "Post not found" };
+    }
+
+    // 2. Check if the user already liked this post
+    const existingLike = await db.query.likes.findFirst({
       where: and(
-        eq(follows.followerId, userId),
-        eq(follows.followingId, targetUserId)
+        eq(likes.userId, userId),
+        eq(likes.postId, postId)
       ),
     });
 
-    if (existingFollow) {
-      // Step 5A: If the relationship already exists, this means the user is already following them.
-      // So we remove that row to unfollow the user.
-      await db
-        .delete(follows)
-        .where(
-          and(
-            eq(follows.followerId, userId),
-            eq(follows.followingId, targetUserId)
-          )
-        );
-    } else {
-      // Step 5B: If no relation exists, we create the follow relationship.
-      // This is wrapped in a database transaction so both inserts happen together or not at all.
+    if (existingLike) {
+      // 3. Unlike: Delete like record and associated LIKE notification atomically
       await db.transaction(async (tx) => {
-        // Insert into follows table: current user follows target user.
-        await tx.insert(follows).values({
-          followerId: userId,
-          followingId: targetUserId,
+        await tx
+          .delete(likes)
+          .where(
+            and(
+              eq(likes.userId, userId),
+              eq(likes.postId, postId)
+            )
+          );
+
+        // Delete existing LIKE notification if liking someone else's post
+        if (post.authorId !== userId) {
+          await tx
+            .delete(notifications)
+            .where(
+              and(
+                eq(notifications.userId, post.authorId),
+                eq(notifications.creatorId, userId),
+                eq(notifications.postId, postId),
+                eq(notifications.type, "LIKE")
+              )
+            );
+        }
+      });
+    } else {
+      // 4. Like: Create like record and notification atomically
+      await db.transaction(async (tx) => {
+        await tx.insert(likes).values({
+          userId,
+          postId,
         });
 
-        // Insert notification so the target user knows they were followed.
-        await tx.insert(notifications).values({
-          type: "FOLLOW",
-          userId: targetUserId,
-          creatorId: userId,
-        });
+        // Send notification only if liking another user's post
+        if (post.authorId !== userId) {
+          await tx.insert(notifications).values({
+            type: "LIKE",
+            userId: post.authorId, // recipient (post author)
+            creatorId: userId,     // actor (person who liked)
+            postId,
+          });
+        }
       });
     }
 
-    // Step 6: Refresh the page cache so the UI reflects the new follow/unfollow state immediately.
     revalidatePath("/");
-
-    // Step 7: Return success so the frontend can handle the UI update.
     return { success: true };
   } catch (error) {
-    // Step 8: If anything fails anywhere above, log it and return an error object.
-    console.error("Error in toggleFollow:", error);
-    return { success: false, error: "Error toggling follow" };
+    console.error("Failed to toggle like:", error);
+    return { success: false, error: "Failed to toggle like" };
   }
 }

@@ -69,7 +69,6 @@ export const likes = pgTable("likes" , {
   postId : text("postId").notNull().references(()=>posts.id ,{onDelete : "cascade"}),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 
-
 })
 
 

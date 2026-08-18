@@ -81,3 +81,60 @@ export const getPosts = async()=>{
         return []; // Return empty array so .map() in UI doesn't crash       
     }
 }
+
+export async function toggleLike(postId) {
+  try {
+    const userId = await getDbUserId();
+    if (!userId) return { success: false, error: "Unauthorized" };
+
+    return await db.transaction(async (tx) => {
+      // 1. Fetch post author to verify existence
+      const post = await tx.query.posts.findFirst({
+        where: eq(posts.id, postId),
+        columns: { authorId: true },
+      });
+
+      if (!post) return { success: false, error: "Post not found" };
+
+      // 2. Attempt to delete like directly (Atomic check + delete)
+      const deletedLikes = await tx
+        .delete(likes)
+        .where(and(eq(likes.userId, userId), eq(likes.postId, postId)))
+        .returning();
+
+      const wasLiked = deletedLikes.length > 0;
+
+      if (wasLiked) {
+        // UNLIKE: Remove notification if liking someone else's post
+        if (post.authorId !== userId) {
+          await tx.delete(notifications).where(
+            and(
+              eq(notifications.userId, post.authorId),
+              eq(notifications.creatorId, userId),
+              eq(notifications.postId, postId),
+              eq(notifications.type, "LIKE")
+            )
+          );
+        }
+      } else {
+        // LIKE: Add like and create notification
+        await tx.insert(likes).values({ userId, postId });
+
+        if (post.authorId !== userId) {
+          await tx.insert(notifications).values({
+            type: "LIKE",
+            userId: post.authorId,
+            creatorId: userId,
+            postId,
+          });
+        }
+      }
+
+      revalidatePath("/");
+      return { success: true };
+    });
+  } catch (error) {
+    console.error("Failed to toggle like:", error);
+    return { success: false, error: "Failed to toggle like" };
+  }
+}
