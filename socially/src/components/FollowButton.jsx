@@ -12,6 +12,7 @@ const FollowButton = ({userId}) => {
   const handleFollow = async()=>{
        try {
           await toggleFollow(userId)
+          setIsLoading(true)
           toast.success("User Folllwed  Sucessfully")
        } catch (error) {
           toast.error("Error Folllwing User")
@@ -28,7 +29,7 @@ const FollowButton = ({userId}) => {
     variant={"secondary"}
     onClick={handleFollow}
     disabled = {isLoading}
-    className ={"w-20 dark:bg-[#161616] cursor-pointer hover:bg-[#535658]"}
+    className ={"w-20  cursor-pointer "}
     
     >
       {isLoading ? <Loader2Icon className='size-4 animate-spin'/> : "Follow"}

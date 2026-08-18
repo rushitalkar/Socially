@@ -1,5 +1,5 @@
 // db/schema.ts
-import { pgTable, serial, text, timestamp ,defaultRandom , uuid , pgEnum } from "drizzle-orm/pg-core";
+import { pgTable, serial, text, timestamp ,defaultRandom , uniqueIndex , pgEnum } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 import { createId } from "@paralleldrive/cuid2";
 import { boolean, index, primaryKey } from "drizzle-orm/gel-core";
@@ -28,16 +28,13 @@ export const users = pgTable("users", {
 
 
 export const follows = pgTable("follows" , {
+  id: text("id").primaryKey().$defaultFn(() => createId()),
   followerId : text("followerId").notNull().references(()=>users.id , {onDelete : "cascade"}),
   followingId : text("followingId").notNull().references(()=> users.id , {onDelete : "cascade"}),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 }, 
   (table)=>[
-     primaryKey({columns : [table.followerId , table.followingId]}),
-     index("follows_follower_following_idx").on(
-      table.followerId,
-      table.followingId
-     ),
+    uniqueIndex("follower_following_idx").on(table.followerId, table.followingId),
     //  we write this way also
     //  primaryKey({ columns: [table.followerId, table.followingId] }),
   ],
