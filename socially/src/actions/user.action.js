@@ -209,3 +209,69 @@ export async function toggleLike(postId) {
     return { success: false, error: "Failed to toggle like" };
   }
 }
+
+export async function toggleFollow(targetUserId) {
+  try {
+    const userId = await getDbUserId();
+
+    if (!userId) {
+      return { success: false, error: "Unauthorized" };
+    }
+
+    if (userId === targetUserId) {
+      return { success: false, error: "You cannot follow yourself" };
+    }
+
+    // 1. Check if follow relation exists
+    const existingFollow = await db.query.follows.findFirst({
+      where: and(
+        eq(follows.followerId, userId),
+        eq(follows.followingId, targetUserId)
+      ),
+    });
+
+    if (existingFollow) {
+      // 2. Unfollow & remove notification atomically
+      await db.transaction(async (tx) => {
+        await tx
+          .delete(follows)
+          .where(
+            and(
+              eq(follows.followerId, userId),
+              eq(follows.followingId, targetUserId)
+            )
+          );
+
+        await tx
+          .delete(notifications)
+          .where(
+            and(
+              eq(notifications.userId, targetUserId),
+              eq(notifications.creatorId, userId),
+              eq(notifications.type, "FOLLOW")
+            )
+          );
+      });
+    } else {
+      // 3. Follow & create notification atomically
+      await db.transaction(async (tx) => {
+        await tx.insert(follows).values({
+          followerId: userId,
+          followingId: targetUserId,
+        });
+
+        await tx.insert(notifications).values({
+          type: "FOLLOW",
+          userId: targetUserId,
+          creatorId: userId,
+        });
+      });
+    }
+
+    revalidatePath("/");
+    return { success: true };
+  } catch (error) {
+    console.error("Error in toggleFollow:", error);
+    return { success: false, error: "Error toggling follow" };
+  }
+}
