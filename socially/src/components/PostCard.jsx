@@ -45,8 +45,6 @@ const PostCard = ({post, dbUser}) => {
 
   const handleAddComment = async()=>{
      if(!newComment.trim() || isCommenting) return
-     
-
      try {
         setIsCommenting(true)
         const result = await createComment(post.id , newComment)
@@ -100,6 +98,7 @@ const PostCard = ({post, dbUser}) => {
                   <div className="flex items-center space-x-2 text-sm text-muted-foreground">
                     <Link href={`/profile/${post.author.username}`}>@{post.author.username}</Link>
                     <span>•</span>
+                    {/* Show how long ago the post was created, such as "5 minutes ago". */}
                     <span>{formatDistanceToNow(new Date(post.createdAt))} ago</span>
                   </div>
                 </div>
