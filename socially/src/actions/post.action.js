@@ -162,7 +162,7 @@ export async function createComment(postId, content) {
 // 2. Insert comment and optional notification atomically inside a transaction
    const newComment = await db.transaction(async(tx)=>{
     // Create comment and return generated row (including assigned ID and timestamp)
-      const [comment] =  tx.insert(comments).values({
+      const [comment] =await  tx.insert(comments).values({
         content : content.trim(),
         authorId : userId,
         postId
@@ -170,11 +170,11 @@ export async function createComment(postId, content) {
 
       // Create notification only if commenting on another user's post
       if (post.authorId !== userId) {
-        tx.insert(notifications).values({
+       await tx.insert(notifications).values({
           type : "COMMENT",
           userId : post.authorId,// recipient (post author)
           creatorId: userId,     // actor (person who commented)
-          commentId : comments.id,
+          commentId : comment.id,
           postId,
 
         })
