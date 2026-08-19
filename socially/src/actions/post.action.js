@@ -6,6 +6,8 @@ import { users , notifications , likes , posts ,comments, follows } from "@/db/s
 import { getDbUserId } from "./user.action";
 import { revalidatePath } from "next/cache";
 import { asc, desc } from "drizzle-orm";
+import { types } from "pg";
+import { comment } from "postcss";
 
 export const createPost =async (content , imageUrl)=>{
      try {
@@ -136,5 +138,78 @@ export async function toggleLike(postId) {
   } catch (error) {
     console.error("Failed to toggle like:", error);
     return { success: false, error: "Failed to toggle like" };
+  }
+}
+
+export async function createComment(postId, content) {
+  try {
+    const userId = await getDbUserId();
+    if (!userId) {
+      return { success: false, error: "Unauthorized" };
+    }
+
+    if (!content || !content.trim()) {
+      return { success: false, error: "Content is required" };
+    }
+// 1. Fetch post to verify existence and get target author ID
+   const post = await db.query.posts.findFirst({
+    where : eq(posts.id , postId),
+    columns : {authorId : true}
+   })
+   if (!post) {
+      return { success: false, error: "Post not found" };
+    }
+// 2. Insert comment and optional notification atomically inside a transaction
+   const newComment = await db.transaction(async(tx)=>{
+    // Create comment and return generated row (including assigned ID and timestamp)
+      const [comment] =  tx.insert(comments).values({
+        content : content.trim(),
+        authorId : userId,
+        postId
+      }).returning()
+
+      // Create notification only if commenting on another user's post
+      if (post.authorId !== userId) {
+        tx.insert(notifications).values({
+          type : "COMMENT",
+          userId : post.authorId,// recipient (post author)
+          creatorId: userId,     // actor (person who commented)
+          commentId : comments.id,
+          postId,
+
+        })
+      }
+
+      return comment
+   })
+
+   revalidatePath("/")
+   return {status : true , comment : newComment}
+  } catch (error) {
+    console.error("Failed to create comment:", error);
+    return { success: false, error: "Failed to create comment" };
+  }
+}
+
+
+export const deletePost= async(postId)=> {
+  try {
+    const userId = await getDbUserId();
+
+    const post = await db.query.posts.findFirst({
+      where: eq(posts.id , postId),
+      columns: { authorId: true },
+    });
+
+    if (!post) throw new Error("Post not found");
+    if (post.authorId !== userId) throw new Error("Unauthorized - no delete permission");
+
+    await db.delete(posts).where(eq(posts.id , postId))
+
+    revalidatePath("/"); // purge the cache
+    return { success: true };
+  } catch (error) {
+    console.error("Failed to delete post:", error);
+    return { success: false, error: "Failed to delete post" };
   }
 }
