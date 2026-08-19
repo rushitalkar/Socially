@@ -29,7 +29,11 @@ export const createPost =async (content , imageUrl)=>{
 }
 
 export const getPosts = async()=>{
+          const userId = await getDbUserId()
+          if(!userId) return []
+
     try {
+
       const posts = await db.query.posts.findMany({
          orderBy : (posts , {desc})=>[desc(posts.createdAt)],
          // 2. Fetch nested relations using `with`
@@ -39,9 +43,9 @@ export const getPosts = async()=>{
             author : {
                columns : {
                   id: true,
-            name: true,
-            image: true,
-            username: true,
+                  name: true,
+                  image: true,
+                  username: true,
 
                }
             },
@@ -76,6 +80,7 @@ export const getPosts = async()=>{
          }
 
       }))
+
       return postWithCounts
 
     } catch (error) {

@@ -75,16 +75,20 @@ export async function getUserByClerkId(clerkId) {
 
 
 export async function getDbUserId() {
-    const { userId: clerkId } = await auth()
+  try {
+    const { userId: clerkId } = await auth();
+    
+    // Return null instead of throwing an error for unauthenticated/logged-out users
+    if (!clerkId) return null;
 
-    if (!clerkId) throw new Error("unauthenticated")
+    const user = await getUserByClerkId(clerkId);
+    if (!user) return null;
 
-    const user = await getUserByClerkId(clerkId)
-
-    if (!user) throw new Error("User Not Found")
-
-    return user.id
-
+    return user.id;
+  } catch (error) {
+    console.error("Error in getDbUserId:", error);
+    return null;
+  }
 }
 
 export async function getRandomUsers() {
