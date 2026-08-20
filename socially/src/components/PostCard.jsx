@@ -23,9 +23,6 @@ const PostCard = ({post, dbUser}) => {
   const [optimisticLikes , setOptimisticLikes] = useState(post._count.likes)
   const [showComments, setShowComments] = useState(false);
 
-  
-  console.log(post);
-
   const handleLikes = async()=>{
     if(isLinking) return
     

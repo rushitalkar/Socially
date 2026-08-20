@@ -97,9 +97,13 @@ export const usersRelations = relations(users, ({ many }) => ({
   likes: many(likes),
   followers: many(follows, { relationName: "following" }),
   following: many(follows, { relationName: "follower" }),
-  notifications: many(notifications, { relationName: "userNotifications" }),
-  notificationsCreated: many(notifications, {
-    relationName: "notificationCreator",
+
+  // Must match the exact relationNames used in notificationsRelations below
+  createdNotifications: many(notifications, {
+    relationName: "notification_creator",
+  }),
+  receivedNotifications: many(notifications, {
+    relationName: "notification_recipient",
   }),
 }));
 
@@ -151,21 +155,26 @@ export const likesRelations = relations(likes , ({one})=>({
    })
 }))
 
-export const notificationRelation = relations(notifications, ({one , many})=>({
-    user : one(users , {
-      fields : [notifications.userId],
-      references : [users.id]
-    }),
-    comment : one(comments , {
-       fields : [notifications.commentId],
-       references : [comments.id]
-    }),
-    creator : one(users , {
-      fields : [notifications.creatorId],
-      references : [users.id]
-    }),
-    post : one(posts , {
-      fields : [notifications.postId],
-      references : [posts.id]
-    })
-}))
+export const notificationsRelations = relations(notifications, ({ one }) => ({
+  // Maps creatorId -> users.id with relationName
+  creator: one(users, {
+    fields: [notifications.creatorId],
+    references: [users.id],
+    relationName: "notification_creator",
+  }),
+  // Maps userId -> users.id with relationName
+  user: one(users, {
+    fields: [notifications.userId],
+    references: [users.id],
+    relationName: "notification_recipient",
+  }),
+  post: one(posts, {
+    fields: [notifications.postId],
+    references: [posts.id],
+  }),
+  comment: one(comments, {
+    fields: [notifications.commentId],
+    references: [comments.id],
+  }),
+}));
+
