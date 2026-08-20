@@ -7,12 +7,15 @@ import { getDbUserId } from "./user.action";
 
 export async function getNotifications() {
   try {
-   const userId = await getDbUserId();
+    const userId = await getDbUserId();
+    if (!userId) return [];
 
-   const userNotifications = await db.query.notifications.findMany({
-     where :  eq(notifications.userId , userId),
+    // Fetch user notifications with relational joins using db.query
+    const userNotifications = await db.query.notifications.findMany({
+      where: eq(notifications.userId, userId),
+      orderBy: (notifications, { desc }) => [desc(notifications.createdAt)],
+      with: {
         // Select specific fields for creator
-        with :{
         creator: {
           columns: {
             id: true,
@@ -54,8 +57,11 @@ export async function markNotificationsAsRead(notificationIds) {
     }
 
     // Update read status for all provided notification IDs in a single query
-    await db.update(notifications).set({read : true}).where(inArray(notificationIds.id , notificationIds))
-    
+    await db
+      .update(notifications)
+      .set({ read: true })
+      .where(inArray(notifications.id, notificationIds));
+
     return { success: true };
   } catch (error) {
     console.error("Error marking notifications as read:", error);

@@ -8,6 +8,7 @@ import { Card, CardContent } from "./ui/card";
 import Link from "next/link";
 import { Avatar, AvatarImage } from "./ui/avatar";
 import { formatDistanceToNow } from "date-fns";
+import { useEffect } from "react";
 import { Button } from "./ui/button";
 import { HeartIcon, LogInIcon, MessageCircleIcon, SendIcon } from "lucide-react";
 import { Textarea } from "./ui/textarea";
@@ -22,6 +23,11 @@ const PostCard = ({post, dbUser}) => {
   const [hasLiked , setHasLiked] = useState(post.likes.some((like)=> like.userId === dbUser))
   const [optimisticLikes , setOptimisticLikes] = useState(post._count.likes)
   const [showComments, setShowComments] = useState(false);
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   const handleLikes = async()=>{
     if(isLinking) return
@@ -96,7 +102,9 @@ const PostCard = ({post, dbUser}) => {
                     <Link href={`/profile/${post.author.username}`}>@{post.author.username}</Link>
                     <span>•</span>
                     {/* Show how long ago the post was created, such as "5 minutes ago". */}
-                    <span>{formatDistanceToNow(new Date(post.createdAt))} ago</span>
+                    <span>
+                      {isMounted ? formatDistanceToNow(new Date(post.createdAt)) : "..."} ago
+                    </span>
                   </div>
                 </div>
                 {/* Check if current user is the post author */}
@@ -173,7 +181,7 @@ const PostCard = ({post, dbUser}) => {
                         </span>
                         <span className="text-sm text-muted-foreground">·</span>
                         <span className="text-sm text-muted-foreground">
-                          {formatDistanceToNow(new Date(comment.createdAt))} ago
+                          {isMounted ? formatDistanceToNow(new Date(comment.createdAt)) : "..."} ago
                         </span>
                       </div>
                       <p className="text-sm break-words">{comment.content}</p>

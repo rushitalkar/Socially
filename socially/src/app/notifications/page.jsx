@@ -3,10 +3,14 @@
 import React from 'react'
 import { getNotifications, markNotificationsAsRead } from '@/actions/notifications.action'
 import { Button } from '@/components/ui/button'
-import NotificationPage from '@/components/NotificationPage'
 import { useState , useEffect } from 'react'
 import { NotificationsSkeleton } from '@/components/NotificationSkeleton'
 import toast from 'react-hot-toast'
+import { Avatar, AvatarImage } from "@/components/ui/avatar";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { formatDistanceToNow } from "date-fns";
+import { HeartIcon, MessageCircleIcon, UserPlusIcon } from "lucide-react";
 const NotificationsPage = () => {
    const [notifications, setNotifications] = useState([])
    const [isLoading, setIsLoading] = useState(true)
@@ -19,21 +23,21 @@ const NotificationsPage = () => {
           const data =  await getNotifications()
           setNotifications(data)
 
-          const unreadIds = data.filter(n => !n.read).map(n => n.id)
+          const unreadIds = data.filter((n) => !n.read).map(n => n.id)
           if(unreadIds.length  > 0) await markNotificationsAsRead(unreadIds)
         } catch (error) {
           toast.error("Failed to fetch notifications")
-        }
+        }finally {
+        setIsLoading(false);
+      }
+
      }
    
      fetchNotifications()
 
-     if (condition) <NotificationsSkeleton/>
-     return () => {
-       
-     }
    }, [])
    
+     if (isLoading) return <NotificationsSkeleton/>
 
   
   return (
