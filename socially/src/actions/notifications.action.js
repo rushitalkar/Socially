@@ -10,12 +10,11 @@ export async function getNotifications() {
     const userId = await getDbUserId();
     if (!userId) return [];
 
-    // Fetch user notifications with relational joins using db.query
+    // Fetch matching user notifications with relational joins using db.query
     const userNotifications = await db.query.notifications.findMany({
       where: eq(notifications.userId, userId),
       orderBy: (notifications, { desc }) => [desc(notifications.createdAt)],
       with: {
-        // Select specific fields for creator
         creator: {
           columns: {
             id: true,
@@ -24,7 +23,6 @@ export async function getNotifications() {
             image: true,
           },
         },
-        // Select specific fields for post
         post: {
           columns: {
             id: true,
@@ -32,7 +30,6 @@ export async function getNotifications() {
             image: true,
           },
         },
-        // Select specific fields for comment
         comment: {
           columns: {
             id: true,

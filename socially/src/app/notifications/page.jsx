@@ -11,6 +11,22 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { formatDistanceToNow } from "date-fns";
 import { HeartIcon, MessageCircleIcon, UserPlusIcon } from "lucide-react";
+
+
+
+const getNotificationIcon = (type) => {
+  switch (type) {
+    case "LIKE":
+      return <HeartIcon className="size-4 text-red-500" />;
+    case "COMMENT":
+      return <MessageCircleIcon className="size-4 text-blue-500" />;
+    case "FOLLOW":
+      return <UserPlusIcon className="size-4 text-green-500" />;
+    default:
+      return null;
+  }
+};
+
 const NotificationsPage = () => {
    const [notifications, setNotifications] = useState([])
    const [isLoading, setIsLoading] = useState(true)
@@ -45,7 +61,7 @@ const NotificationsPage = () => {
       <Card>
         <CardHeader className="border-b">
           <div className="flex items-center justify-between">
-            <CardTitle>Notifications</CardTitle>
+            <CardTitle className="pb-4">Notifications</CardTitle>
             <span className="text-sm text-muted-foreground">
               {notifications.filter((n) => !n.read).length} unread
             </span>
