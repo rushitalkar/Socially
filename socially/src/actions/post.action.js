@@ -29,8 +29,7 @@ export const createPost =async (content , imageUrl)=>{
 }
 
 export const getPosts = async()=>{
-          const userId = await getDbUserId()
-          if(!userId) return []
+        
 
     try {
 
