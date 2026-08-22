@@ -8,7 +8,8 @@ import { auth } from "@clerk/nextjs/server";
 import { getDbUserId } from "./user.action";
 export async function getProfileByUsername(username) {
   try {
-   const user = await db.query.users.findMany({
+    if (!username) return {message : "username is required"};
+   const user = await db.query.users.findFirst({
       where  : eq(users.username , username),
       columns :{
         id: true,
@@ -33,17 +34,25 @@ export async function getProfileByUsername(username) {
     }
 
    })
+   
+   if(!user) return null
 
-   const [followers , following , posts , ...userProfile] =user
 
    return {
-    ...userProfile ,
-    _count :{
-        followers: followers.length,
-        following: following.length,
-        posts: posts.length,
-    }
-   }
+      id: user.id,
+      name: user.name,
+      username: user.username,
+      bio: user.bio,
+      image: user.image,
+      location: user.location,
+      website: user.website,
+      createdAt: user.createdAt,
+      _count: {
+        followers: user.followers?.length ?? 0,
+        following: user.following?.length ?? 0,
+        posts: user.posts?.length ?? 0,
+      },
+    };
   } catch (error) {
     console.error("Error fetching profile:", error);
     return null;
@@ -158,7 +167,7 @@ export const updateProfile =async()=>{
     }
 }
 
-export const isfollowing = async()=>{
+export const isFollowing = async()=>{
   try {
     const currentUserId = await getDbUserId(userID)
 
