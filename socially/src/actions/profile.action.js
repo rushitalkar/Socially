@@ -1,7 +1,7 @@
 "use server";
 
 import { db } from "@/db";
-import { follows, users } from "@/db/schema";
+import { follows, users , posts, likes,} from "@/db/schema";
 import { and, eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { auth } from "@clerk/nextjs/server";
